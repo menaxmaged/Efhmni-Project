@@ -1,1 +1,0 @@
- /Users/menamaged/Desktop/Esma3ny-Project/mobile\ application/.dart_tool/flutter_build/6a4d1c56473e1baa9e5c52bc1bec96b6/native_assets.yaml: 
