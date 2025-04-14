@@ -45,13 +45,13 @@ class HomeScreen extends StatelessWidget {
             body: returnBody(),
             bottomNavigationBar: Container(
               width: double.infinity,
-              height: 70,
+              height: 80,
               decoration: const BoxDecoration(
-                color: Color(0xFF2A2A2A),
+                color: Color(0xFF1E1E1E),
                 border: Border(
                   top: BorderSide(
-                    width: 3.0,
-                    color: Color(0xFFFE00F4),
+                    width: 4.0,
+                    color: Colors.blueAccent,
                   ),
                 ),
               ),
@@ -71,7 +71,7 @@ class HomeScreen extends StatelessWidget {
                                 MyProvider.pageNumber == 4 ||
                                 MyProvider.pageNumber == 5 ||
                                 MyProvider.pageNumber == 6
-                            ? Colors.purpleAccent
+                            ? Colors.blueAccent
                             : Colors.white,
                         size: 36,
                       )),
@@ -84,7 +84,7 @@ class HomeScreen extends StatelessWidget {
                       icon: Icon(
                         Icons.video_call,
                         color: MyProvider.pageNumber == 1
-                            ? Colors.purpleAccent
+                            ? Colors.blueAccent
                             : Colors.white,
                         size: 36,
                       )),
@@ -97,7 +97,7 @@ class HomeScreen extends StatelessWidget {
                       icon: Icon(
                         Icons.info_outline,
                         color: MyProvider.pageNumber == 2
-                            ? Colors.purpleAccent
+                            ? Colors.blueAccent
                             : Colors.white,
                         size: 36,
                       )),
