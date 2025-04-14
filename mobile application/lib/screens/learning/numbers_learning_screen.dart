@@ -1,7 +1,8 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:carousel_slider/carousel_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:gp_project/provider/provider.dart';
-import 'package:gp_project/shared/constants.dart';
+import 'package:esm3ni/provider/provider.dart';
+import 'package:esm3ni/shared/constants.dart';
 import 'package:provider/provider.dart';
 
 class NumbersLearningScreen extends StatefulWidget {
@@ -12,7 +13,7 @@ class NumbersLearningScreen extends StatefulWidget {
 }
 
 class _NumbersLearningScreenState extends State<NumbersLearningScreen> {
-  final CarouselController _carouselController = CarouselController();
+  final CarouselSliderController _carouselController = CarouselSliderController();
 
   int selectedNumber = 0;
 
@@ -52,7 +53,7 @@ class _NumbersLearningScreenState extends State<NumbersLearningScreen> {
                 Expanded(
                   flex: 2,
                   child: CarouselSlider(
-                      carouselController: _carouselController,
+  carouselController: _carouselController,
                       options: CarouselOptions(
                         aspectRatio: 0.9,
                         viewportFraction: 1,

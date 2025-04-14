@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gp_project/provider/provider.dart';
-import 'package:gp_project/shared/constants.dart';
-import 'package:gp_project/shared/shared_widgets.dart';
+import 'package:esm3ni/provider/provider.dart';
+import 'package:esm3ni/shared/constants.dart';
+import 'package:esm3ni/shared/shared_widgets.dart';
 import 'package:provider/provider.dart';
 
 class TranslatingHomeScreen extends StatelessWidget {

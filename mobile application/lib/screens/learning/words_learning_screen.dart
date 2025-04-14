@@ -1,7 +1,8 @@
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:carousel_slider/carousel_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:gp_project/provider/provider.dart';
-import 'package:gp_project/shared/constants.dart';
+import 'package:esm3ni/provider/provider.dart';
+import 'package:esm3ni/shared/constants.dart';
 import 'package:provider/provider.dart';
 
 class WordsLearningScreen extends StatefulWidget {
@@ -12,7 +13,7 @@ class WordsLearningScreen extends StatefulWidget {
 }
 
 class _WordsLearningScreenState extends State<WordsLearningScreen> {
-  final CarouselController _carouselController = CarouselController();
+  final CarouselSliderController _carouselController = CarouselSliderController();
   int selectedWordIndex = 0;
 
   @override

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gp_project/shared/shared_widgets.dart';
+import 'package:esm3ni/shared/shared_widgets.dart';
 
 class AboutUsScreen extends StatefulWidget {
   const AboutUsScreen({Key? key}) : super(key: key);

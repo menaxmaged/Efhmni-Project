@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gp_project/screens/home/home.dart';
-import 'package:gp_project/services/api-handler.dart';
+import 'package:esm3ni/screens/home/home.dart';
+import 'package:esm3ni/services/api-handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

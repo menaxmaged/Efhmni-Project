@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:gp_project/provider/provider.dart';
-import 'package:gp_project/screens/about_us.dart';
-import 'package:gp_project/screens/home/learning_home_screen.dart';
-import 'package:gp_project/screens/home/translation_screen.dart';
-import 'package:gp_project/screens/learning/numbers_learning_screen.dart';
-import 'package:gp_project/screens/learning/sentences_learning_screen.dart';
-import 'package:gp_project/screens/learning/words_learning_screen.dart';
-import 'package:gp_project/screens/learning/letters_learning_screen.dart';
+import 'package:esm3ni/provider/provider.dart';
+import 'package:esm3ni/screens/about_us.dart';
+import 'package:esm3ni/screens/home/learning_home_screen.dart';
+import 'package:esm3ni/screens/home/translation_screen.dart';
+import 'package:esm3ni/screens/learning/numbers_learning_screen.dart';
+import 'package:esm3ni/screens/learning/sentences_learning_screen.dart';
+import 'package:esm3ni/screens/learning/words_learning_screen.dart';
+import 'package:esm3ni/screens/learning/letters_learning_screen.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatelessWidget {
