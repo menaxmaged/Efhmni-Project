@@ -10,8 +10,10 @@ def start_ngrok(port: int):
     Starts Ngrok tunnel for the specified port and returns the public URL.
     """
     print(" * Starting ngrok tunnel...")
-    public_url = ngrok.connect(port)
-    print('{}'.format(public_url))
+    public_url = ngrok.connect(port, domain="tender-sculpin-badly.ngrok-free.app")
+    #print('{}'.format(public_url))
+    print(f"Ngrok tunnel with static domain is running at: {public_url}")
+
     return public_url
 
 # Set the configuration for Flask to avoid issues with non-ASCII characters
