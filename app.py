@@ -28,19 +28,32 @@ def process_video():
     """
     Handle the uploaded video, process it, and return the prediction result.
     """
+    # Step 1: Retrieve the uploaded video file
     video_file = request.files['video']
+    print(f'\033[1m\033[32mReceived video file: {video_file.filename}\033[0m')
+    print(f'\033[1m\033[34mFile type: {video_file.content_type}\033[0m')
+    print(f'\033[1m\033[34mFile size: {len(video_file.read())} bytes\033[0m')
+    
+    # Reset file pointer after reading size
+    video_file.seek(0)
 
-    # Save the video file to disk
+    # Step 2: Save the video file to disk
     video_path = 'video.mp4'
     video_file.save(video_path)
+    print(f'\033[1m\033[33mVideo saved at: {video_path}\033[0m')
 
-    # Extract frames from the video
+    # Step 3: Extract frames from the video
     frames = video_to_frames(video_path)
-    print("Number of frames: ", len(frames))
-
-    # Process frames and get prediction
+    print(f'\033[1m\033[36mNumber of frames extracted: {len(frames)}\033[0m')
+    
+    # Step 4: Process frames and get prediction
+    print(f'\033[1m\033[35mProcessing frames...\033[0m')
     result = predict_from_frames(frames)
+    
+    # Step 5: Print result of prediction
+    print(f'\033[1m\033[32mPrediction result: {result}\033[0m')
 
+    # Step 6: Return the prediction result
     return result
 
 @app.route('/upload', methods=['GET'])
