@@ -19,7 +19,7 @@ app.config['JSON_AS_ASCII'] = False
 
 @app.route("/")
 def home():
-    return "<p>Egyptian Sign Language Translator KOSMK</p>"
+    return "<p>Egyptian Sign Language Translator</p>"
 
 @app.route('/process_video', methods=['POST'])
 def process_video():
