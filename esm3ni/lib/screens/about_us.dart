@@ -12,10 +12,11 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
   final List<String> teamMembers = [
     "Mena Maged",
     "Marwa Salem",
-    "محمد عبدالحليم",
-    "مايكل مجدي",
-    "بيتر سامي",
-    "سيف الدين مصطفى",
+    "Abdelrahman Ali Maher",
+    "Abdelrahman Ahmed Goda",
+    "Menna Khaled",
+    "Sabry Salah",
+    "Yousra Abdelzaher",
   ];
 
   @override
