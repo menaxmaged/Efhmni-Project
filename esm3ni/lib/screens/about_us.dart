@@ -10,8 +10,8 @@ class AboutUsScreen extends StatefulWidget {
 
 class _AboutUsScreenState extends State<AboutUsScreen> {
   final List<String> teamMembers = [
-    "محمد مسعد عامر",
-    "محمد خالد",
+    "Mena Maged",
+    "Marwa Salem",
     "محمد عبدالحليم",
     "مايكل مجدي",
     "بيتر سامي",
@@ -21,7 +21,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
   @override
   void initState() {
     super.initState();
-    teamMembers.shuffle();
+   // teamMembers.shuffle();
   }
 
   @override
@@ -54,6 +54,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                 "أسمعني هو تطبيق يهدف لترجمة لغة الصم و البكم المصرية لتسهيل التواصل بين الصم و البكم و بقية أفراد المجتمع مما يساعد فى زيادة اختلاط الصم و البكم بالمجتمع مستفيدين من قدراتمه و امكانياتهم ",
                 style: TextStyle(color: Colors.white),
                 maxLines: 6,
+
               ),
               Column(
                 children: [
@@ -73,22 +74,22 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          memberName(memberName: teamMembers[0]),
-                          memberName(memberName: teamMembers[1])
+                          memberbox(memberName: teamMembers[0]),
+                          memberbox(memberName: teamMembers[1])
                         ],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          memberName(memberName: teamMembers[2]),
-                          memberName(memberName: teamMembers[3])
+                          memberbox(memberName: teamMembers[2]),
+                          memberbox(memberName: teamMembers[3])
                         ],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          memberName(memberName: teamMembers[4]),
-                          memberName(memberName: teamMembers[5]),
+                          memberbox(memberName: teamMembers[4]),
+                          memberbox(memberName: teamMembers[5]),
                         ],
                       ),
                     ],

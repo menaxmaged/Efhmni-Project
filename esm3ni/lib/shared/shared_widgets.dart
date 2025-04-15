@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-Widget memberName({required String memberName}) {
+Widget memberbox({required String memberName}) {
   return Container(
     height: 230,
     decoration: BoxDecoration(
