@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
@@ -8,6 +9,8 @@ import 'package:esm3ni/shared/constants.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 
 class TranslationScreen extends StatefulWidget {
   const TranslationScreen({Key? key}) : super(key: key);
@@ -19,7 +22,6 @@ class TranslationScreen extends StatefulWidget {
 class _TranslationScreenState extends State<TranslationScreen> {
   String result = "";
   VideoPlayerController? _videoController;
-
   bool videoTranslated = false;
   bool cameraToCapture = false;
   bool videoLoaded = false;
@@ -50,23 +52,27 @@ class _TranslationScreenState extends State<TranslationScreen> {
     _cameraController = CameraController(_cameras[0], ResolutionPreset.high);
     await _cameraController.initialize();
     setState(() {});
+    print("[Camera] Camera initialized.");
   }
 
   void _startCountdown() {
     setState(() {
       _isCountdownActive = true;
     });
+    print("[Countdown] Countdown started.");
     Timer.periodic(const Duration(seconds: 1), (Timer timer) {
       if (_countdownSeconds > 1) {
         setState(() {
           _countdownSeconds--;
         });
+        print("[Countdown] $_countdownSeconds seconds left...");
       } else {
         timer.cancel();
         setState(() {
           _countdownSeconds = 3;
           _isCountdownActive = false;
         });
+        print("[Countdown] Countdown ended. Starting video recording...");
         _captureVideo();
       }
     });
@@ -77,6 +83,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
       videoCaptureStarted = true;
     });
     await _cameraController.startVideoRecording();
+    print("[Camera] Video recording started.");
   }
 
   Future<void> _stopVideo() async {
@@ -86,6 +93,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
       videoLoaded = true;
     });
     file = await _cameraController.stopVideoRecording();
+    print("[Camera] Video recording stopped. File saved at: ${file?.path}");
     if (file != null) {
       await displayChosenVideo(path: file!.path);
     }
@@ -97,24 +105,38 @@ class _TranslationScreenState extends State<TranslationScreen> {
       isUploading = true;
     });
 
-    _videoController = VideoPlayerController.file(File(path));
+  
+    if (kIsWeb) {
+      print("[Upload] Detected Web: Using network video controller");
+      _videoController = VideoPlayerController.networkUrl(Uri.parse(path));
+    } else {
+      print("[Upload] Using local file video controller");
+      _videoController = VideoPlayerController.file(File(path));
+    }
+
+//    print("[Upload] Preparing video for playback from path: $path");
+  //  _videoController = VideoPlayerController.file(File(path));
     await _videoController!.initialize();
-    _videoController!.play();
-    _videoController!.setVolume(0);
-    _videoController!.setLooping(true);
+    _videoController!
+      ..play()
+      ..setVolume(0)
+      ..setLooping(true);
 
     setState(() {
       videoLoaded = true;
     });
 
+    print("[Upload] Upload started...");
     try {
       String? response = await ApiHandler.uploadVideo(filePath: path);
+      print("[Upload] Upload response: $response");
       setState(() {
         result = response?.trim().isEmpty ?? true
             ? "حدث خطأ أثناء التحميل."
             : response!;
       });
-    } catch (_) {
+    } catch (e) {
+      print("[Upload] Upload failed. Error: $e");
       setState(() {
         result = "حدث خطأ أثناء التحميل.";
       });
@@ -134,22 +156,22 @@ class _TranslationScreenState extends State<TranslationScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
             decoration: backgroundDecoration,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 appBar(),
                 Expanded(
                   child: cameraToCapture
                       ? cameraCaptureWidget()
-                      : videoLoaded && _videoController != null && _videoController!.value.isInitialized
+                      : videoLoaded &&
+                              _videoController != null &&
+                              _videoController!.value.isInitialized
                           ? displayVideo()
                           : noVideoWidget(),
                 ),
                 const SizedBox(height: 10),
-                const Divider(thickness: 4, height: 4, color: Colors.lightGreenAccent),
+                const Divider(thickness: 4, color: Colors.lightGreenAccent),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     translationButton(
                       text: "ترجمة فيديو\n على الهاتف",
@@ -158,8 +180,10 @@ class _TranslationScreenState extends State<TranslationScreen> {
                           ? null
                           : () async {
                               final picker = ImagePicker();
-                              final pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+                              final pickedFile =
+                                  await picker.pickVideo(source: ImageSource.gallery);
                               if (pickedFile != null) {
+                                print("[Gallery] Picked file: ${pickedFile.path}");
                                 await displayChosenVideo(path: pickedFile.path);
                               }
                             },
@@ -171,6 +195,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                       onTap: isUploading
                           ? null
                           : () {
+                              print("[UI] Switching to camera preview.");
                               setState(() {
                                 cameraToCapture = true;
                               });
@@ -202,15 +227,11 @@ class _TranslationScreenState extends State<TranslationScreen> {
           height: 150,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: const [
-                Colors.lightGreenAccent,
-                Color(0x00000000),
-              ],
+              colors: const [Colors.lightGreenAccent, Color(0x00000000)],
               begin: top ? Alignment.topCenter : Alignment.bottomCenter,
               end: top ? Alignment.bottomCenter : Alignment.topCenter,
             ),
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(width: 2.0, color: Colors.transparent),
           ),
           child: Container(
             decoration: BoxDecoration(
@@ -319,6 +340,7 @@ class _TranslationScreenState extends State<TranslationScreen> {
                       setState(() {
                         cameraToCapture = false;
                       });
+                      print("[UI] Cancelled camera capture.");
                     },
                     child: const Text("إلغاء", style: TextStyle(color: Colors.white)),
                   ),

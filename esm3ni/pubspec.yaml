@@ -42,7 +42,7 @@ dependencies:
   camera: ^0.10.5+2 # Or the version you're using
   http:
   image_picker:
-  video_player:
+  video_player: ^2.7.0
   path_provider:
 #  bottom_navy_bar: 6.0.0
 dev_dependencies:
