@@ -80,6 +80,21 @@ def process_video():
     else:
         #if Nothing matches the threshold then return an expressive statement
         return "عذرا, لم يتم التحقق جيدا من الجملة."
+@app.route('/upload', methods=['GET'])
+def upload():
+    return '''
+        <h1>مترجم لغة الإشارة المصرية</h1>
+        <form method="POST" action="/process_video" enctype="multipart/form-data">
+            <label>اختر فيديو (.mp4):</label><br><br>
+            <input type="file" name="video" accept="video/mp4" required><br><br>
+            <input type="submit" value="ابدأ الترجمة">
+        </form>
+    '''
+     
+     
+@app.route('/<path:path>')
+def catch_all(path):
+    return f'No such page: {path}', 404
     
 def video_to_frames(video_path, frame_interval=1):
     # Open the video file

@@ -1,5 +1,5 @@
 venv\Scripts\activate
-set FLASK_APP=esm el app
+set FLASK_APP=esm3ni
 set FLASK_ENV=development
 flask run
 

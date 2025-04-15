@@ -4,7 +4,7 @@ import 'package:esm3ni/services/api-handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await ApiHandler.getNgrokLink();
+ // await ApiHandler.getNgrokLink();
   runApp(const MyApp());
 }
 

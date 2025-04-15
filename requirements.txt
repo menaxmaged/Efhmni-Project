@@ -1,0 +1,7 @@
+Flask==2.3.2
+tensorflow==2.15.0           # Required for keras.models.load_model
+opencv-python==4.8.1.78      # For video and image processing (cv2)
+mediapipe==0.10.9            # For extracting body/hand landmarks
+numpy==1.24.4                # For numerical processing
+arabic-reshaper==3.0.0       # To reshape Arabic text for display
+python-bidi==0.4.2           # For bidirectional Arabic text support

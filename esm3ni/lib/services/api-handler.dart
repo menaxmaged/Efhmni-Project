@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiHandler {
-  static String ngrokLink = "";
+  static String ngrokLink = "https://127.0.0.1:5000";
 
   static Future<void> getNgrokLink() async {
     // final response =
