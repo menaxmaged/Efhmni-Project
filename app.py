@@ -28,33 +28,55 @@ def process_video():
     """
     Handle the uploaded video, process it, and return the prediction result.
     """
-    # Step 1: Retrieve the uploaded video file
-    video_file = request.files['video']
-    print(f'\033[1m\033[32mReceived video file: {video_file.filename}\033[0m')
-    print(f'\033[1m\033[34mFile type: {video_file.content_type}\033[0m')
-    print(f'\033[1m\033[34mFile size: {len(video_file.read())} bytes\033[0m')
-    
-    # Reset file pointer after reading size
-    video_file.seek(0)
+    try:
+        # Step 1: Retrieve the uploaded video file
+        video_file = request.files['video']
+        print(f'\033[1m\033[32mReceived video file: {video_file.filename}\033[0m')
+        print(f'\033[1m\033[34mFile type: {video_file.content_type}\033[0m')
+        
+        # Check if the file is empty
+        if not video_file:
+            raise ValueError("No video file uploaded")
+        
+        # Reading file size
+        video_file.seek(0, 2)  # Seek to the end to get the size
+        file_size = video_file.tell()
+        print(f'\033[1m\033[34mFile size: {file_size} bytes\033[0m')
+        video_file.seek(0)  # Reset file pointer to the beginning
 
-    # Step 2: Save the video file to disk
-    video_path = 'video.mp4'
-    video_file.save(video_path)
-    print(f'\033[1m\033[33mVideo saved at: {video_path}\033[0m')
+        # Step 2: Save the video file to disk
+        video_path = 'video.mp4'
+        video_file.save(video_path)
+        print(f'\033[1m\033[33mVideo saved at: {video_path}\033[0m')
 
-    # Step 3: Extract frames from the video
-    frames = video_to_frames(video_path)
-    print(f'\033[1m\033[36mNumber of frames extracted: {len(frames)}\033[0m')
-    
-    # Step 4: Process frames and get prediction
-    print(f'\033[1m\033[35mProcessing frames...\033[0m')
-    result = predict_from_frames(frames)
-    
-    # Step 5: Print result of prediction
-    print(f'\033[1m\033[32mPrediction result: {result}\033[0m')
+        # Step 3: Extract frames from the video
+        try:
+            frames = video_to_frames(video_path)
+            print(f'\033[1m\033[36mNumber of frames extracted: {len(frames)}\033[0m')
+        except Exception as e:
+            print(f'\033[1m\033[31mError extracting frames: {e}\033[0m')
+            return jsonify({"error": f"Error extracting frames: {str(e)}"}), 500
 
-    # Step 6: Return the prediction result
-    return result
+        # Step 4: Process frames and get prediction
+        try:
+            print(f'\033[1m\033[35mProcessing frames...\033[0m')
+            result = predict_from_frames(frames)
+        except Exception as e:
+            print(f'\033[1m\033[31mError processing frames: {e}\033[0m')
+            return jsonify({"error": f"Error processing frames: {str(e)}"}), 500
+        
+        # Step 5: Print result of prediction
+        print(f'\033[1m\033[32mPrediction result: {result}\033[0m')
+
+        # Step 6: Return the prediction result
+        return  result#jsonify({"result": result})
+
+    except ValueError as e:
+        print(f'\033[1m\033[31mError: {e}\033[0m')
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        print(f'\033[1m\033[31mUnexpected error: {e}\033[0m')
+        return jsonify({"error": "An unexpected error occurred."}), 500
 
 @app.route('/upload', methods=['GET'])
 def upload():
