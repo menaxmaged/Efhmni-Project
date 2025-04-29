@@ -10,6 +10,8 @@ def start_ngrok(port: int):
     Starts Ngrok tunnel for the specified port and returns the public URL.
     """
     print(" * Starting ngrok tunnel...")
+    ngrok.set_auth_token("2N1uyElcHqbXEsvE6616QFzSn4W_6rZ1Ek8vBJNGsKXyRhZ3P")
+
     public_url = ngrok.connect(port, domain="tender-sculpin-badly.ngrok-free.app")
     #print('{}'.format(public_url))
     print(f"Ngrok tunnel with static domain is running at: {public_url}")
