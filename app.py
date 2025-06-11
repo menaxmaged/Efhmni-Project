@@ -129,11 +129,6 @@ NGROK_TOKEN = os.environ.get("NGROK_AUTHTOKEN", "2N1uyElcHqbXEsvE6616QFzSn4W_6rZ
 
 # --- Updated HTML Template for both Video and Image ---
 
-# List of predefined words in sequence
-words_list = ["السلام عليكم", "الحمد لله", "اسمك ايه","أ","م","ب"]
-
-# Sequence index to keep track of the last word shown
-sequence_index = 0
 
 def start_ngrok(port: int):
     """Starts Ngrok tunnel and prints the public URL."""
@@ -191,57 +186,26 @@ def process_video_route():
 
 # --- NEW ENDPOINT FOR IMAGE PROCESSING ---
 @app.route('/process_image', methods=['POST'])
-#  def process_image_route():
-#     """Handles single image upload for letter prediction."""
-#     if static_model is None:
-#         return jsonify({"error": "Model not available on server."}), 500
+ def process_image_route():
+    """Handles single image upload for letter prediction."""
+    if static_model is None:
+        return jsonify({"error": "Model not available on server."}), 500
         
-#     if 'image' not in request.files:
-#         return jsonify({"error": "No image file provided."}), 400
-
-#     image_file = request.files['image']
-
-#     try:
-#         # Open the image file directly with Pillow
-#         pil_image = Image.open(image_file.stream)
-#         print(f"✅ Received image file: {image_file.filename}. Starting prediction...")
-#         result = predict_from_image(pil_image)
-#         print(f"✅ Image prediction complete. Result: {result['predicted_letter']}")
-#         return jsonify(result)
-#     except Exception as e:
-#         print(f"❌ Error processing image: {e}")
-#         return jsonify({"error": "Invalid or corrupt image file."}), 400
-def process_image_route():
-    """Handles single image upload and returns a word from the list in sequence."""
-    global sequence_index
-    
-    # Check if the image file is provided
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided."}), 400
 
     image_file = request.files['image']
 
-    # Try to process the image
     try:
-        # Open the image file with Pillow
+        # Open the image file directly with Pillow
         pil_image = Image.open(image_file.stream)
-        pil_image = pil_image.convert('RGB')  # Ensure the image is in RGB format
-        print(f"✅ Received image file: {image_file.filename}. Processing image...")
-
-        # Return the word from the list based on the sequence
-        result_word = words_list[sequence_index]
-
-        # Move to the next word in sequence, wrapping around if necessary
-        sequence_index = (sequence_index + 1) % len(words_list)
-        
-        print(f"✅ Returning word: {result_word}")
-        return  result_word
-    
+        print(f"✅ Received image file: {image_file.filename}. Starting prediction...")
+        result = predict_from_image(pil_image)
+        print(f"✅ Image prediction complete. Result: {result['predicted_letter']}")
+        return jsonify(result)
     except Exception as e:
         print(f"❌ Error processing image: {e}")
         return jsonify({"error": "Invalid or corrupt image file."}), 400
-
-
 @app.route('/<path:path>')
 def catch_all(path):
     """Catches all other routes and returns a JSON 404 error."""
