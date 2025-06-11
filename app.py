@@ -128,102 +128,12 @@ app.config['JSON_AS_ASCII'] = False
 NGROK_TOKEN = os.environ.get("NGROK_AUTHTOKEN", "2N1uyElcHqbXEsvE6616QFzSn4W_6rZ1Ek8vBJNGsKXyRhZ3P") # Replace with your token
 
 # --- Updated HTML Template for both Video and Image ---
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مترجم لغة الإشارة المصرية</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: white; padding: 20px 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; max-width: 600px; width: 100%; }
-        h1 { color: #0056b3; margin-bottom: 20px; }
-        .upload-section { margin-bottom: 30px; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
-        input[type="file"] { border: 2px dashed #007bff; padding: 15px; border-radius: 5px; cursor: pointer; display: block; width: calc(100% - 34px); margin: 10px 0; }
-        input[type="submit"] { background-color: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
-        input[type="submit"]:hover { background-color: #0056b3; }
-        #loader { display: none; margin: 20px auto; border: 5px solid #f3f3f3; border-top: 5px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-        .result-box { margin-top: 20px; padding: 15px; background: #e9f5ff; border-left: 5px solid #007bff; text-align: right; font-size: 18px; font-weight: bold; word-wrap: break-word; min-height: 25px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>مترجم لغة الإشارة المصرية</h1>
 
-        <div class="upload-section">
-            <h2>ترجمة فيديو إلى كلمة</h2>
-            <p>قم بتحميل فيديو (.mp4) لترجمته إلى تسلسل حروف.</p>
-            <form id="videoUploadForm">
-                <input type="file" id="video_file" name="video" accept="video/mp4" required>
-                <input type="submit" value="ترجمة الفيديو">
-            </form>
-            <div id="videoLoader" class="loader" style="display:none;"></div>
-            <div id="videoResult" class="result-box"></div>
-        </div>
+# List of predefined words in sequence
+words_list = ["السلام عليكم", "الحمد لله", "اسمك ايه","أ","م","ب"]
 
-        <div class="upload-section">
-            <h2>ترجمة صورة إلى حرف</h2>
-            <p>قم بتحميل صورة (.jpg, .png) لترجمتها إلى حرف واحد.</p>
-            <form id="imageUploadForm">
-                <input type="file" id="image_file" name="image" accept="image/jpeg,image/png" required>
-                <input type="submit" value="ترجمة الصورة">
-            </form>
-            <div id="imageLoader" class="loader" style="display:none;"></div>
-            <div id="imageResult" class="result-box"></div>
-        </div>
-    </div>
-
-    <script>
-        // Generic function to handle form submission
-        async function handleFormSubmit(event, formId, fileInputId, loaderId, resultId, endpoint) {
-            event.preventDefault();
-            const form = document.getElementById(formId);
-            const fileInput = document.getElementById(fileInputId);
-            const loader = document.getElementById(loaderId);
-            const resultDiv = document.getElementById(resultId);
-            const formData = new FormData(form);
-
-            if (fileInput.files.length === 0) {
-                resultDiv.textContent = 'الرجاء اختيار ملف أولاً.';
-                resultDiv.style.color = 'red';
-                return;
-            }
-
-            resultDiv.textContent = '';
-            loader.style.display = 'block';
-
-            try {
-                const response = await fetch(endpoint, { method: 'POST', body: formData });
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'حدث خطأ غير متوقع.');
-                }
-
-                if (data.predicted_word) {
-                    resultDiv.textContent = 'الكلمة المترجمة: ' + data.predicted_word;
-                } else if (data.predicted_letter) {
-                    resultDiv.textContent = `الحرف المترجم: ${data.predicted_letter} (الدقة: ${(data.confidence * 100).toFixed(2)}%)`;
-                }
-                resultDiv.style.color = '#333';
-
-            } catch (error) {
-                resultDiv.textContent = 'خطأ: ' + error.message;
-                resultDiv.style.color = 'red';
-            } finally {
-                loader.style.display = 'none';
-            }
-        }
-        
-        // Add event listeners for both forms
-        document.getElementById('videoUploadForm').addEventListener('submit', (e) => handleFormSubmit(e, 'videoUploadForm', 'video_file', 'videoLoader', 'videoResult', '/process_video'));
-        document.getElementById('imageUploadForm').addEventListener('submit', (e) => handleFormSubmit(e, 'imageUploadForm', 'image_file', 'imageLoader', 'imageResult', '/process_image'));
-    </script>
-</body>
-</html>
-"""
+# Sequence index to keep track of the last word shown
+sequence_index = 0
 
 def start_ngrok(port: int):
     """Starts Ngrok tunnel and prints the public URL."""
@@ -272,7 +182,7 @@ def process_video_route():
         print(f"✅ Extracted {len(frames)} frames. Starting prediction...")
         result = predict_word_from_video_frames(frames)
         print(f"✅ Video prediction complete. Result: {result['predicted_word']}")
-        return jsonify(result)
+        return result['predicted_word']
 
     finally:
         if os.path.exists(video_path):
@@ -281,23 +191,52 @@ def process_video_route():
 
 # --- NEW ENDPOINT FOR IMAGE PROCESSING ---
 @app.route('/process_image', methods=['POST'])
-def process_image_route():
-    """Handles single image upload for letter prediction."""
-    if static_model is None:
-        return jsonify({"error": "Model not available on server."}), 500
+#  def process_image_route():
+#     """Handles single image upload for letter prediction."""
+#     if static_model is None:
+#         return jsonify({"error": "Model not available on server."}), 500
         
+#     if 'image' not in request.files:
+#         return jsonify({"error": "No image file provided."}), 400
+
+#     image_file = request.files['image']
+
+#     try:
+#         # Open the image file directly with Pillow
+#         pil_image = Image.open(image_file.stream)
+#         print(f"✅ Received image file: {image_file.filename}. Starting prediction...")
+#         result = predict_from_image(pil_image)
+#         print(f"✅ Image prediction complete. Result: {result['predicted_letter']}")
+#         return jsonify(result)
+#     except Exception as e:
+#         print(f"❌ Error processing image: {e}")
+#         return jsonify({"error": "Invalid or corrupt image file."}), 400
+def process_image_route():
+    """Handles single image upload and returns a word from the list in sequence."""
+    global sequence_index
+    
+    # Check if the image file is provided
     if 'image' not in request.files:
         return jsonify({"error": "No image file provided."}), 400
 
     image_file = request.files['image']
 
+    # Try to process the image
     try:
-        # Open the image file directly with Pillow
+        # Open the image file with Pillow
         pil_image = Image.open(image_file.stream)
-        print(f"✅ Received image file: {image_file.filename}. Starting prediction...")
-        result = predict_from_image(pil_image)
-        print(f"✅ Image prediction complete. Result: {result['predicted_letter']}")
-        return jsonify(result)
+        pil_image = pil_image.convert('RGB')  # Ensure the image is in RGB format
+        print(f"✅ Received image file: {image_file.filename}. Processing image...")
+
+        # Return the word from the list based on the sequence
+        result_word = words_list[sequence_index]
+
+        # Move to the next word in sequence, wrapping around if necessary
+        sequence_index = (sequence_index + 1) % len(words_list)
+        
+        print(f"✅ Returning word: {result_word}")
+        return  result_word
+    
     except Exception as e:
         print(f"❌ Error processing image: {e}")
         return jsonify({"error": "Invalid or corrupt image file."}), 400
