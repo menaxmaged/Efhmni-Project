@@ -1,6 +1,3 @@
 [submodule "esm3ni"]
 	path = esm3ni
 	url = https://github.com/menaxmaged/esm3ni-flutter.git
-[submodule "efhmni-flutter"]
-	path = efhmni-flutter
-	url = https://github.com/menaxmaged/efhmni-flutter
