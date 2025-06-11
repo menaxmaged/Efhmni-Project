@@ -123,3 +123,11 @@ def predict_from_frames(frames, threshold=0.7):
     # Return the final sentence
     final_sentence = " ".join(sentence) if sentence else "عذرا، لم يتم التعرف على الجملة."
     return {"predicted_sentence": final_sentence}
+
+
+
+
+
+##############################################################################################################
+# NEW
+###############################################################################################################

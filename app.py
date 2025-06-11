@@ -1,7 +1,7 @@
 import os
 import tempfile
 import traceback
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template
 from pyngrok import ngrok
 import cv2
 import numpy as np
@@ -246,7 +246,7 @@ def handle_exception(e):
 @app.route("/")
 def upload_form():
     """Serves the main HTML upload form."""
-    return render_template_string(HTML_TEMPLATE)
+    return render_template('index.html')
 
 @app.route('/process_video', methods=['POST'])
 def process_video_route():
