@@ -10,17 +10,29 @@ from tensorflow.keras.preprocessing.image import img_to_array
 from PIL import Image
 
 # =============================================================================
+# 0. MIDDLEWARE FOR URL NORMALIZATION
+# =============================================================================
+class SlashFixerMiddleware:
+    """
+    Server-side workaround for clients that might incorrectly generate URLs
+    with leading slashes, like '//process_video'.
+    """
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        path = environ.get('PATH_INFO', '')
+        environ['PATH_INFO'] = '/' + path.lstrip('/')
+        return self.app(environ, start_response)
+
+# =============================================================================
 # 1. MODEL AND CONFIGURATION LOADING
 # =============================================================================
-
-# --- Model: Static Sign Recognition (Letters) ---
-# We are only using the static model for letter-by-letter translation from video frames.
 try:
     static_model = load_model('arabic_sign_language_model.h5', compile=False)
     print("✅ Static sign language model (arabic_sign_language_model.h5) loaded successfully.")
 except Exception as e:
     print(f"❌ Error loading static model: {e}")
-    print("🚨 Please ensure 'arabic_sign_language_model.h5' is in the same directory and is a valid Keras model file.")
     static_model = None
 
 static_class_labels = [
@@ -30,12 +42,21 @@ static_class_labels = [
     'ya', 'yaa', 'zay'
 ]
 
+arabic_map = {
+    'ain': 'ع', 'al': 'ال', 'aleff': 'أ', 'bb': 'ب', 'dal': 'د', 'dha': 'ظ',
+    'dhad': 'ض', 'fa': 'ف', 'gaaf': 'ق', 'ghain': 'غ', 'ha': 'ه', 'haa': 'ح',
+    'jeem': 'ج', 'kaaf': 'ك', 'khaa': 'خ', 'la': 'لا', 'laam': 'ل', 'meem': 'م',
+    'nun': 'ن', 'ra': 'ر', 'saad': 'ص', 'seen': 'س', 'sheen': 'ش', 'ta': 'ط',
+    'taa': 'ت', 'thaa': 'ث', 'thal': 'ذ', 'toot': 'ة', 'waw': 'و', 'ya': 'ى',
+    'yaa': 'ي', 'zay': 'ز'
+}
+
 # =============================================================================
-# 2. HELPER FUNCTIONS (for prediction logic)
+# 2. HELPER FUNCTIONS
 # =============================================================================
 
 def preprocess_static_image(image):
-    """Preprocesses an image for the static sign language model."""
+    """Preprocesses a PIL image for the model."""
     img = image.resize((224, 224))
     if img.mode != 'RGB':
         img = img.convert('RGB')
@@ -44,29 +65,28 @@ def preprocess_static_image(image):
     img_array /= 255.0
     return img_array
 
-def predict_from_image(image):
-    """Predicts a single static sign (letter) from an image."""
-    # This function now relies on the check in the main route to ensure the model is loaded.
-    processed_image = preprocess_static_image(image)
+def predict_from_image(pil_image):
+    """Predicts a single static sign (letter) from a PIL image."""
+    processed_image = preprocess_static_image(pil_image)
     predictions = static_model.predict(processed_image)
     
     predicted_class_idx = np.argmax(predictions[0])
     confidence = float(np.max(predictions[0]))
-    predicted_label = static_class_labels[predicted_class_idx]
+    predicted_label_en = static_class_labels[predicted_class_idx]
+    predicted_label_ar = arabic_map.get(predicted_label_en, '?')
 
     return {
-        'predicted_letter': predicted_label,
+        'predicted_letter': predicted_label_ar,
         'confidence': round(confidence, 4)
     }
 
-def video_to_frames(video_path, frame_interval=1):
-    """Extracts frames from a video file."""
+def video_to_frames(video_path, frame_interval=5):
+    """Extracts frames from a video file path."""
     cap = cv2.VideoCapture(video_path)
     frames = []
     count = 0
     if not cap.isOpened():
-        # Raise an error if the video file is invalid or corrupted.
-        raise IOError(f"Cannot open video file. It may be corrupt or in an unsupported format: {video_path}")
+        raise IOError(f"Cannot open video file: {video_path}")
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -78,25 +98,13 @@ def video_to_frames(video_path, frame_interval=1):
     cap.release()
     return frames
 
-def predict_word_from_video(frames, confidence_threshold=0.6):
-    """
-    Predicts a sequence of static signs (letters) from video frames to form a word.
-    
-    Args:
-        frames (list): A list of video frames (as NumPy arrays from OpenCV).
-        confidence_threshold (float): The minimum confidence to consider a prediction.
-
-    Returns:
-        dict: A dictionary containing the final predicted word.
-    """
-    predicted_word = []
+def predict_word_from_video_frames(frames, confidence_threshold=0.6):
+    """Predicts a word from a list of video frames."""
+    predicted_word_list = []
     last_prediction = None
 
     for i, frame in enumerate(frames):
-        # Convert frame from OpenCV BGR format to PIL RGB format
         pil_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-        
-        # Use the function for single image prediction
         result = predict_from_image(pil_image)
         
         predicted_letter = result['predicted_letter']
@@ -104,26 +112,22 @@ def predict_word_from_video(frames, confidence_threshold=0.6):
 
         print(f"  > Frame {i+1}/{len(frames)} -> Prediction: {predicted_letter} (Confidence: {confidence:.2f})")
 
-        # Add the letter if confidence is high and it's a different letter from the last
         if confidence > confidence_threshold and predicted_letter != last_prediction:
-            predicted_word.append(predicted_letter)
+            predicted_word_list.append(predicted_letter)
             last_prediction = predicted_letter
     
-    # Join the letters to form a word, separated by hyphens
-    final_word = "-".join(predicted_word) if predicted_word else "Sorry, no letters were clearly recognized."
+    final_word = "".join(predicted_word_list) if predicted_word_list else "لم يتم التعرف على أية حروف بوضوح."
     return {"predicted_word": final_word}
-
 
 # =============================================================================
 # 3. FLASK APPLICATION
 # =============================================================================
 
-# --- Flask App Initialization and Ngrok Configuration ---
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
-NGROK_TOKEN = os.environ.get("NGROK_AUTHTOKEN", "2N1uyElcHqbXEsvE6616QFzSn4W_6rZ1Ek8vBJNGsKXyRhZ3P")
+NGROK_TOKEN = os.environ.get("NGROK_AUTHTOKEN", "2N1uyElcHqbXEsvE6616QFzSn4W_6rZ1Ek8vBJNGsKXyRhZ3P") # Replace with your token
 
-# --- HTML Template ---
+# --- Updated HTML Template for both Video and Image ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -133,64 +137,75 @@ HTML_TEMPLATE = """
     <title>مترجم لغة الإشارة المصرية</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; max-width: 500px; width: 100%; }
-        h1 { color: #0056b3; }
+        .container { background: white; padding: 20px 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; max-width: 600px; width: 100%; }
+        h1 { color: #0056b3; margin-bottom: 20px; }
+        .upload-section { margin-bottom: 30px; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
         input[type="file"] { border: 2px dashed #007bff; padding: 15px; border-radius: 5px; cursor: pointer; display: block; width: calc(100% - 34px); margin: 10px 0; }
-        input[type="submit"] { background-color: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
+        input[type="submit"] { background-color: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
         input[type="submit"]:hover { background-color: #0056b3; }
         #loader { display: none; margin: 20px auto; border: 5px solid #f3f3f3; border-top: 5px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-        #result { margin-top: 20px; padding: 15px; background: #e9f5ff; border-left: 5px solid #007bff; text-align: right; font-size: 18px; font-weight: bold; word-wrap: break-word; }
+        .result-box { margin-top: 20px; padding: 15px; background: #e9f5ff; border-left: 5px solid #007bff; text-align: right; font-size: 18px; font-weight: bold; word-wrap: break-word; min-height: 25px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>مترجم لغة الإشارة المصرية</h1>
-        <p>قم بتحميل فيديو لترجمته إلى تسلسل حروف.</p>
-        <form id="uploadForm">
-            <label for="video_file">اختر فيديو (.mp4):</label>
-            <input type="file" id="video_file" name="file" accept="video/mp4" required>
-            <input type="submit" value="ابدأ الترجمة">
-        </form>
-        <div id="loader"></div>
-        <div id="result"></div>
+
+        <div class="upload-section">
+            <h2>ترجمة فيديو إلى كلمة</h2>
+            <p>قم بتحميل فيديو (.mp4) لترجمته إلى تسلسل حروف.</p>
+            <form id="videoUploadForm">
+                <input type="file" id="video_file" name="video" accept="video/mp4" required>
+                <input type="submit" value="ترجمة الفيديو">
+            </form>
+            <div id="videoLoader" class="loader" style="display:none;"></div>
+            <div id="videoResult" class="result-box"></div>
+        </div>
+
+        <div class="upload-section">
+            <h2>ترجمة صورة إلى حرف</h2>
+            <p>قم بتحميل صورة (.jpg, .png) لترجمتها إلى حرف واحد.</p>
+            <form id="imageUploadForm">
+                <input type="file" id="image_file" name="image" accept="image/jpeg,image/png" required>
+                <input type="submit" value="ترجمة الصورة">
+            </form>
+            <div id="imageLoader" class="loader" style="display:none;"></div>
+            <div id="imageResult" class="result-box"></div>
+        </div>
     </div>
+
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', async function(event) {
+        // Generic function to handle form submission
+        async function handleFormSubmit(event, formId, fileInputId, loaderId, resultId, endpoint) {
             event.preventDefault();
-            const resultDiv = document.getElementById('result');
-            const loader = document.getElementById('loader');
-            const fileInput = document.getElementById('video_file');
-            const formData = new FormData();
+            const form = document.getElementById(formId);
+            const fileInput = document.getElementById(fileInputId);
+            const loader = document.getElementById(loaderId);
+            const resultDiv = document.getElementById(resultId);
+            const formData = new FormData(form);
 
             if (fileInput.files.length === 0) {
-                resultDiv.textContent = 'الرجاء اختيار ملف فيديو أولاً.';
+                resultDiv.textContent = 'الرجاء اختيار ملف أولاً.';
                 resultDiv.style.color = 'red';
                 return;
             }
 
-            formData.append('file', fileInput.files[0]);
             resultDiv.textContent = '';
             loader.style.display = 'block';
 
             try {
-                const response = await fetch('/process_video', { method: 'POST', body: formData });
-                
+                const response = await fetch(endpoint, { method: 'POST', body: formData });
+                const data = await response.json();
+
                 if (!response.ok) {
-                    let errorMsg;
-                    const contentType = response.headers.get("content-type");
-                    if (contentType && contentType.indexOf("application/json") !== -1) {
-                        const errorData = await response.json();
-                        errorMsg = errorData.error || 'An unexpected server error occurred.';
-                    } else {
-                        errorMsg = `Server returned an unexpected response (Status: ${response.status}). Check the server console for more details.`;
-                    }
-                    throw new Error(errorMsg);
+                    throw new Error(data.error || 'حدث خطأ غير متوقع.');
                 }
 
-                const data = await response.json();
                 if (data.predicted_word) {
-                    resultDiv.textContent = 'الكلمة المترجمة (تسلسل حروف): ' + data.predicted_word;
+                    resultDiv.textContent = 'الكلمة المترجمة: ' + data.predicted_word;
+                } else if (data.predicted_letter) {
+                    resultDiv.textContent = `الحرف المترجم: ${data.predicted_letter} (الدقة: ${(data.confidence * 100).toFixed(2)}%)`;
                 }
                 resultDiv.style.color = '#333';
 
@@ -200,7 +215,11 @@ HTML_TEMPLATE = """
             } finally {
                 loader.style.display = 'none';
             }
-        });
+        }
+        
+        // Add event listeners for both forms
+        document.getElementById('videoUploadForm').addEventListener('submit', (e) => handleFormSubmit(e, 'videoUploadForm', 'video_file', 'videoLoader', 'videoResult', '/process_video'));
+        document.getElementById('imageUploadForm').addEventListener('submit', (e) => handleFormSubmit(e, 'imageUploadForm', 'image_file', 'imageLoader', 'imageResult', '/process_image'));
     </script>
 </body>
 </html>
@@ -211,7 +230,7 @@ def start_ngrok(port: int):
     print(" * Starting ngrok tunnel...")
     ngrok.set_auth_token(NGROK_TOKEN)
     try:
-        public_url = ngrok.connect(port, domain="tender-sculpin-badly.ngrok-free.app")
+        public_url = ngrok.connect(port,domain="tender-sculpin-badly.ngrok-free.app")
         print(f" * Ngrok tunnel is running at: {public_url}")
     except Exception as e:
         print(f" * Error starting ngrok: {e}")
@@ -220,13 +239,9 @@ def start_ngrok(port: int):
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    """Global handler for any exception, ensures a JSON response for all errors."""
-    # Log the full exception traceback to the console for debugging
-    print(f"--- UNHANDLED EXCEPTION: {e} ---")
+    """Global handler for any exception."""
     traceback.print_exc()
-    print("---------------------------------")
-    # Return a JSON response with a 500 status code
-    return jsonify(error="An internal server error occurred. Please check the server logs for details."), 500
+    return jsonify(error="An internal server error occurred."), 500
 
 @app.route("/")
 def upload_form():
@@ -234,44 +249,58 @@ def upload_form():
     return render_template_string(HTML_TEMPLATE)
 
 @app.route('/process_video', methods=['POST'])
-def process_video():
-    """Handles video upload for static sign (letter-by-letter) prediction."""
-    # --- 1. Pre-computation checks ---
+def process_video_route():
+    """Handles video upload for letter-by-letter prediction."""
     if static_model is None:
-        print("❌ Prediction failed because the static model is not loaded.")
-        return jsonify({"error": "Model not available on server. Please check server logs."}), 500
+        return jsonify({"error": "Model not available on server."}), 500
         
-    if 'file' not in request.files or not request.files['file'].filename:
+    if 'video' not in request.files:
         return jsonify({"error": "No video file provided."}), 400
 
-    video_file = request.files['file']
-    print(f"\n✅ Received video file: {video_file.filename}")
-
-    # --- 2. File processing and prediction ---
-    # The 'with' statement ensures the temporary file is always cleaned up
+    video_file = request.files['video']
+    
     with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_video:
         video_path = temp_video.name
         video_file.save(video_path)
     
     try:
-        print(f"⚙️  Extracting frames from '{video_path}'...")
-        frames = video_to_frames(video_path, frame_interval=5)
+        print(f"⚙️  Extracting frames from video...")
+        frames = video_to_frames(video_path)
         if not frames:
-            print("❌ No frames were extracted. The video file may be corrupt or empty.")
-            return jsonify({"error": "Could not extract any frames from the video. The file may be corrupt or in an unsupported format."}), 400
+            return jsonify({"error": "Could not extract frames from video."}), 400
         
         print(f"✅ Extracted {len(frames)} frames. Starting prediction...")
-        result = predict_word_from_video(frames)
-        print(f"✅ Prediction complete. Result: {result['predicted_word']}")
-        
+        result = predict_word_from_video_frames(frames)
+        print(f"✅ Video prediction complete. Result: {result['predicted_word']}")
         return jsonify(result)
 
     finally:
-        # --- 3. Cleanup ---
-        # Ensure the temporary file is deleted after processing
         if os.path.exists(video_path):
             os.remove(video_path)
-            print(f"🗑️  Cleaned up temporary file: {video_path}")
+            print(f"🗑️  Cleaned up temp video file.")
+
+# --- NEW ENDPOINT FOR IMAGE PROCESSING ---
+@app.route('/process_image', methods=['POST'])
+def process_image_route():
+    """Handles single image upload for letter prediction."""
+    if static_model is None:
+        return jsonify({"error": "Model not available on server."}), 500
+        
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided."}), 400
+
+    image_file = request.files['image']
+
+    try:
+        # Open the image file directly with Pillow
+        pil_image = Image.open(image_file.stream)
+        print(f"✅ Received image file: {image_file.filename}. Starting prediction...")
+        result = predict_from_image(pil_image)
+        print(f"✅ Image prediction complete. Result: {result['predicted_letter']}")
+        return jsonify(result)
+    except Exception as e:
+        print(f"❌ Error processing image: {e}")
+        return jsonify({"error": "Invalid or corrupt image file."}), 400
 
 
 @app.route('/<path:path>')
@@ -282,7 +311,9 @@ def catch_all(path):
 # --- Main Execution ---
 if __name__ == "__main__":
     if static_model is None:
-        print("\n🚨 WARNING: The application is starting, but the model failed to load.")
-        print("   The /process_video endpoint will return an error until the model is fixed.\n")
+        print("\n🚨 WARNING: Application starting, but MODEL FAILED TO LOAD.")
+    
+    app.wsgi_app = SlashFixerMiddleware(app.wsgi_app)
+    
     start_ngrok(5050)
     app.run(port=5050, host="0.0.0.0")
