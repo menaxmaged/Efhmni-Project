@@ -76,6 +76,16 @@ def register_routes(app):
 
     @app.route("/process_video", methods=["POST"])
     def process_videos_route():
+        if static_model is None:
+            return jsonify({"error": "Model not available."}), 500
+        if 'video' not in request.files:
+            return jsonify({"error": "No video provided."}), 400
+
+        video_file = request.files['video']
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_video:
+            path = temp_video.name
+            video_file.save(path)
+
         global word_index
         word = words_sequence[word_index]
         word_index = (word_index + 1) % len(words_sequence)
