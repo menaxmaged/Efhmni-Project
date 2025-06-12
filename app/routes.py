@@ -79,6 +79,7 @@ def register_routes(app):
         global word_index
         word = words_sequence[word_index]
         word_index = (word_index + 1) % len(words_sequence)
+        print(f"Processing word: {word}")
         return word
 
     @app.route("/<path:path>")
