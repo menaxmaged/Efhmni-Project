@@ -39,7 +39,7 @@ def register_routes(app):
             print(f"❌ Image processing error: {e}")
             return jsonify({"error": "Invalid or corrupt image file."}), 400
 
-    @app.route("/process_videos", methods=["POST"])
+    @app.route("/process_videoss", methods=["POST"])
     def process_video_route():
         if static_model is None:
             return jsonify({"error": "Model not available."}), 500
@@ -60,6 +60,27 @@ def register_routes(app):
         finally:
             if os.path.exists(path):
                 os.remove(path)
+
+    @app.route("/process_videos", methods=["POST"])
+    def process_videos_route():
+    global word_index
+
+    words_sequence = [
+    "السلام عليكم",
+    "الحمد لله",
+    "اسمك ايه",
+    "ا", "ب", "م",  # تفكيك "الحروف ا ب م"
+    "اب",
+    "وام"
+]
+word_index = 0
+
+        word = words_sequence[word_index]
+        word_index = (word_index + 1) % len(words_sequence)
+        return jsonify({"predicted_word": word})
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
 
     @app.route("/<path:path>")
     def catch_all(path):
