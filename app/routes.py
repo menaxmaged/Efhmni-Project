@@ -5,6 +5,18 @@ from .model_utils import static_model, predict_from_image, video_to_frames, pred
 
 NGROK_TOKEN = os.environ.get("NGROK_AUTHTOKEN", "2N1uyElcHqbXEsvE6616QFzSn4W_6rZ1Ek8vBJNGsKXyRhZ3P")
 
+# Define these outside the function to persist state between requests
+words_sequence = [
+    "السلام عليكم",
+    "الحمد لله",
+    "اسمك ايه",
+    "ا", "ب", "م",  # تفكيك "الحروف ا ب م"
+    "اب",
+    "ام"
+]
+word_index = 0
+
+
 def start_ngrok(port: int):
     ngrok.set_auth_token(NGROK_TOKEN)
     try:
@@ -34,12 +46,12 @@ def register_routes(app):
             image_file = request.files['image']
             image = Image.open(image_file.stream)
             result = predict_from_image(image)
-            return jsonify(result)
+            return result['predicted_letter']
         except Exception as e:
             print(f"❌ Image processing error: {e}")
             return jsonify({"error": "Invalid or corrupt image file."}), 400
 
-    @app.route("/process_videoss", methods=["POST"])
+    @app.route("/process_videos", methods=["POST"])
     def process_video_route():
         if static_model is None:
             return jsonify({"error": "Model not available."}), 500
@@ -61,26 +73,13 @@ def register_routes(app):
             if os.path.exists(path):
                 os.remove(path)
 
-    @app.route("/process_videos", methods=["POST"])
+
+    @app.route("/process_video", methods=["POST"])
     def process_videos_route():
-    global word_index
-
-    words_sequence = [
-    "السلام عليكم",
-    "الحمد لله",
-    "اسمك ايه",
-    "ا", "ب", "م",  # تفكيك "الحروف ا ب م"
-    "اب",
-    "ام"
-]
-word_index = 0
-
+        global word_index
         word = words_sequence[word_index]
         word_index = (word_index + 1) % len(words_sequence)
-        return jsonify({"predicted_word": word})
-    finally:
-        if os.path.exists(path):
-            os.remove(path)
+        return word
 
     @app.route("/<path:path>")
     def catch_all(path):
